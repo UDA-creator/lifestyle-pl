@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>记账</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="记账">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0a1120">
+<link rel="apple-touch-icon" href="app-icon.png">
+<link rel="icon" type="image/png" href="app-icon.png">
+<style>
+  html,body{margin:0;height:100%;background:#0a1120;color:#eef3fb;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif}
+  #app{position:fixed;inset:0;width:100%;height:100%;border:0;display:none;background:#0a1120}
+  #setup{min-height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;box-sizing:border-box;text-align:center}
+  #setup img{width:84px;height:84px;border-radius:20px;margin-bottom:18px}
+  #setup .t{font-size:20px;font-weight:800;margin-bottom:8px}
+  #setup .s{font-size:13px;color:#8b98b0;line-height:1.6;margin-bottom:18px;max-width:320px}
+  #setup input{width:100%;max-width:360px;box-sizing:border-box;height:48px;border-radius:12px;border:1px solid #1f2c44;background:#16223a;
+    color:#eef3fb;font-size:14px;padding:0 12px;outline:none}
+  #setup input:focus{border-color:#6ee7c0}
+  #setup button{margin-top:12px;width:100%;max-width:360px;height:50px;border:0;border-radius:14px;background:#6ee7c0;color:#06281e;font-size:17px;font-weight:800}
+  #err{color:#ff8a8a;font-size:13px;min-height:20px;margin-top:10px}
+</style>
+</head>
+<body>
+<iframe id="app" title="记账"></iframe>
+<div id="setup" hidden>
+  <img src="app-icon.png" alt="">
+  <div class="t">第一次使用：贴上记账链接</div>
+  <div class="s">Google Sheet 菜单「📒 账本 → 📱 显示三个链接」里，script.google.com 开头、/exec 结尾的那条（哪一条都可以）。链接只存在这部手机里。</div>
+  <input id="u" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+  <button id="ok">保存</button>
+  <div id="err"></div>
+</div>
+<script>
+// 外层网页：只负责主屏幕图标和全屏，里面整个是 Google Apps Script 的记账页。
+// 你的链接不写在这里（GitHub 是公开的），只存在这部手机：网址的 ?id=… 和手机的本地储存。
+(function(){
+  var PAGE='owner', KEY='jz_id';
+  function idFrom(s){
+    s=String(s||'').trim();
+    var m=s.match(/\/macros\/s\/([A-Za-z0-9_-]{20,})/); if(m) return m[1];
+    m=s.match(/^[A-Za-z0-9_-]{30,}$/); return m?m[0]:'';
+  }
+  function store(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
+  function read(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+  var q=new URLSearchParams(location.search);
+  if(q.get('reset')){ store(KEY,null); location.replace(location.pathname); return; }
+  var id=idFrom(q.get('id'))||idFrom(read(KEY));
+  if(id){
+    store(KEY,id);
+    // 网址带上 id：加到主屏幕时，iPhone 记住的就是这条
+    if(q.get('id')!==id){ try{ history.replaceState(null,'',location.pathname+'?id='+id); }catch(e){} }
+    var f=document.getElementById('app');
+    f.src='https://script.google.com/macros/s/'+id+'/exec?p='+PAGE;
+    f.style.display='block';
+  } else {
+    var box=document.getElementById('setup'); box.hidden=false;
+    document.getElementById('ok').onclick=function(){
+      var v=idFrom(document.getElementById('u').value);
+      if(!v){ document.getElementById('err').textContent='看不懂这条链接，请贴 script.google.com 开头、/exec 结尾的那条'; return; }
+      store(KEY,v); location.replace(location.pathname+'?id='+v);
+    };
+  }
+})();
+</script>
+</body>
+</html>
